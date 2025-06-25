@@ -1,34 +1,35 @@
-import OpenAI from 'openai';
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import { Configuration, OpenAIApi } from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+dotenv.config();
 
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
 const app = express();
-const port = process.env.PORT || 10000;
-
-app.use(bodyParser.json());
 app.use(cors());
+app.use(bodyParser.json());
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 app.post('/chat', async (req, res) => {
-  const { message } = req.body;
-
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: message }],
+    const { messages } = req.body;
+    const completion = await openai.createChatCompletion({
+      model: 'gpt-3.5-turbo',
+      messages,
     });
-
-    res.json({ reply: completion.choices[0].message.content });
+    res.json(completion.data);
   } catch (error) {
-    console.error('OpenAI API Error:', error);
-    res.status(500).json({ error: 'Failed to get response from OpenAI' });
+    console.error(error.response?.data || error.message);
+    res.status(500).send('Internal Server Error');
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
