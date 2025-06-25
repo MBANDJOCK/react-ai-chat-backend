@@ -1,35 +1,34 @@
+import OpenAI from 'openai';
 
-import express from 'express';
-import cors from 'cors';
-import { Configuration, OpenAIApi } from 'openai';
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 10000;
 
+app.use(bodyParser.json());
 app.use(cors());
-app.use(express.json());
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
 
 app.post('/chat', async (req, res) => {
-  const { messages } = req.body;
+  const { message } = req.body;
 
   try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
-      messages: messages,
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: message }],
     });
 
-    res.json({ response: completion.data.choices[0].message });
+    res.json({ reply: completion.choices[0].message.content });
   } catch (error) {
-    console.error('Error creating chat completion:', error);
-    res.status(500).json({ error: 'Something went wrong' });
+    console.error('OpenAI API Error:', error);
+    res.status(500).json({ error: 'Failed to get response from OpenAI' });
   }
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
